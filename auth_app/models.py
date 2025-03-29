@@ -7,6 +7,8 @@ class AuthUser(models.Model):
     refresh_token = models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = models.Manager()
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(id={self.user_id})"
 
