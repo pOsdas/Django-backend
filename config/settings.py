@@ -8,17 +8,18 @@ import dj_database_url
 from auth_app.config import pydantic_settings
 
 # Корневая директория проекта
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 
 # Основные настройки
 SECRET_KEY = pydantic_settings.secret_key
-DEBUG = os.environ.get("DEBUG", "True") == "True"
+DEBUG = pydantic_settings.model_config.env_prefix == "True"
 ALLOWED_HOSTS = []
 
 # Настройка базы данных
 DATABASES = {
     'default': dj_database_url.parse(pydantic_settings.db.url)
 }
+DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql_async"
 
 # Установленные приложения
 INSTALLED_APPS = [
@@ -29,6 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework'
     # Ваши приложения
     'auth_app',
     'user_app',
@@ -63,7 +65,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'my_django_project.wsgi.application'
+ASGI_APPLICATION = 'my_django_project.asgi.application'
 
 # Статические файлы
 STATIC_URL = '/static/'
