@@ -7,9 +7,10 @@ delete
 from typing import Sequence, Optional
 
 from asgiref.sync import sync_to_async
+from django.core.exceptions import ObjectDoesNotExist
 
 from auth_app.models import AuthUser
-from auth_app.security import hash_password
+from auth_app.services.security import hash_password
 
 # ### fake users db
 john = AuthUser(
@@ -46,7 +47,7 @@ static_auth_token_to_user_id = {
 
 
 async def get_all_users() -> Sequence[AuthUser]:
-    users = await AuthUser.objects.order_by("user_id")
+    users = [user async for user in AuthUser.objects.order_by("user_id")]
     return users
 
 
@@ -54,9 +55,9 @@ async def get_auth_user(
         user_id: int,
 ) -> Optional[AuthUser]:
     try:
-        user = await sync_to_async(AuthUser.objects.get)(user_id=user_id)
+        user = await AuthUser.objects.aget(user_id=user_id)
         return user
-    except AuthUser.DoesNotExist:
+    except ObjectDoesNotExist:
         return None
 
 
@@ -65,5 +66,5 @@ async def delete_auth_user(
 ) -> None:
     user = await get_auth_user(user_id)
     if user:
-        await sync_to_async(user.delete)()
+        await user.adelete()
 
