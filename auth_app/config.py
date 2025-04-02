@@ -1,7 +1,11 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Принудительно загружаем .env и .env-template
+load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -57,6 +61,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         env_prefix="AUTH_SERVICE__"
     )
+    debug: bool = False
     google_client_id: str
     google_client_secret: str
     oauth_redirect_uri: str
