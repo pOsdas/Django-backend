@@ -12,14 +12,16 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Основные настройки
 SECRET_KEY = pydantic_settings.secret_key
-DEBUG = pydantic_settings.model_config.env_prefix == "True"
+DEBUG = pydantic_settings.debug
 ALLOWED_HOSTS = []
 
 # Настройка базы данных
 DATABASES = {
-    'default': dj_database_url.parse(pydantic_settings.db.url)
+    'default': dj_database_url.parse(str(pydantic_settings.db.url).replace("postgresql+asyncpg", "postgresql"))
+    # 'default': dj_database_url.parse(str(pydantic_settings.db.url))
 }
-DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql_async"
+# DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql_asyncpg"
+DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql"
 
 # Установленные приложения
 INSTALLED_APPS = [
@@ -30,7 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework'
+    'rest_framework',
+    'rest_framework_simplejwt',
     # Ваши приложения
     'auth_app',
     'user_app',
