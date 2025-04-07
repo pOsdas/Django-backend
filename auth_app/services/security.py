@@ -2,16 +2,17 @@ import jwt
 import bcrypt
 from datetime import datetime, timezone, timedelta
 from passlib.context import CryptContext
-from django.conf import settings
+# from django.conf import settings
+from auth_app.config import pydantic_settings as settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def encode_jwt(
     payload: dict,
-    private_key: str = settings.AUTH_JWT['private_key_path'].read_text(),
-    algorithm: str = settings.AUTH_JWT['algorithm'],
-    expires_in: int = settings.AUTH_JWT['access_token_expires_in'],  # minutes
+    private_key: str = settings.auth_jwt.private_key_path.read_text(),
+    algorithm: str = settings.auth_jwt.algorithm,
+    expires_in: int = settings.auth_jwt.access_token_expires_in,  # minutes
     expire_timedelta: timedelta | None = None,
 ):
     to_encode = payload.copy()
@@ -27,8 +28,8 @@ def encode_jwt(
 
 def decode_jwt(
     token: str | bytes,
-    public_key: str = settings.AUTH_JWT['public_key_path'].read_text(),
-    algorithm: str = settings.AUTH_JWT['algorithm'],
+    public_key: str = settings.auth_jwt.public_key_path.read_text(),
+    algorithm: str = settings.auth_jwt.algorithm,
 ):
     decoded = jwt.decode(token, public_key, algorithms=[algorithm])
     return decoded

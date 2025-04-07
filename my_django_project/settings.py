@@ -17,10 +17,9 @@ ALLOWED_HOSTS = []
 
 # Настройка базы данных
 DATABASES = {
-    'default': dj_database_url.parse(str(pydantic_settings.db.url).replace("postgresql+asyncpg", "postgresql"))
-    # 'default': dj_database_url.parse(str(pydantic_settings.db.url))
+    'default': dj_database_url.parse(str(pydantic_settings.db.url))
 }
-# DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql_asyncpg"
+# DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql_async"
 DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql"
 
 # Установленные приложения
@@ -69,6 +68,7 @@ TEMPLATES = [
 ]
 
 ASGI_APPLICATION = 'my_django_project.asgi.application'
+# WSGI_APPLICATION = 'my_django_project.wsgi.application'
 
 # Статические файлы
 STATIC_URL = '/static/'
