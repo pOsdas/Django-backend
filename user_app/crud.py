@@ -4,10 +4,10 @@ read
 update
 delete
 """
+from rest_framework import status
 from django.db import IntegrityError
 from typing import Sequence, Optional
 from rest_framework.response import Response
-from rest_framework import status, exceptions
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
 
@@ -20,11 +20,21 @@ async def get_all_users() -> Sequence[User]:
     return users
 
 
-async def get_user(
+async def get_user_by_id(
         user_id: int
 ) -> Optional[User]:
     try:
         user = await User.objects.aget(user_id=user_id)
+        return user
+    except ObjectDoesNotExist:
+        return None
+
+
+async def get_user_by_username(
+        username: str
+) -> Optional[User]:
+    try:
+        user = await User.objects.aget(username=username)
         return user
     except ObjectDoesNotExist:
         return None
@@ -62,7 +72,7 @@ async def create_user(
 async def delete_user(
         user_id: int,
 ) -> Response | dict:
-    user = await get_user(user_id=user_id)
+    user = await get_user_by_id(user_id=user_id)
     if user:
         try:
             await user.adelete()
