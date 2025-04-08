@@ -2,4 +2,4 @@ __all__ = (
     "User"
 )
 
-from models import User
+from .models import User
