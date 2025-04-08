@@ -1,16 +1,16 @@
-from typing import Annotated
 import httpx
-from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import status
 from django.db import IntegrityError
-from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, exceptions
+from django.core.exceptions import ObjectDoesNotExist
 
-from user_app.models import User
 from user_app.config import pydantic_settings as settings
+from user_app.crud import (
+    get_all_users, get_user_by_id, get_user_by_email,
+    create_user, delete_user, get_user_by_username
+)
 from user_app.api.v1.serializers import CreateUser, ReadUser, UserSerializer, UserUpdateSerializer
-from user_app import crud
 
 
 # from .utils.fake_db import fake_users_db
@@ -29,7 +29,7 @@ class CreateUserAPIView(APIView):
         # Проверяем существует ли пользователь с таким email
         email = serializer.validated_data.get("email")
         try:
-            exiting_user = await User.objects.aget(email=email)
+            exiting_user = await get_user_by_email(email=email)
             if exiting_user:
                 return Response(
                     {"detail": "User with such email already exists"},
@@ -40,7 +40,7 @@ class CreateUserAPIView(APIView):
 
         # Создаём пользователя
         try:
-            user = await User.objects.acreate(**serializer.validated_data)
+            user = await create_user(**serializer.validated_data)
         except IntegrityError as e:
             return Response(
                 {"detail": f"Integrity error: {str(e)}"},
@@ -58,7 +58,7 @@ class CreateUserAPIView(APIView):
 
 class GetUsersAPIView(APIView):
     async def get(self, request, *args, **kwargs):
-        users = [user async for user in User.objects.order_by("id")]
+        users = await get_all_users()
         serializer = ReadUser(users, many=True)
         return Response(serializer.data)
 
@@ -66,7 +66,7 @@ class GetUsersAPIView(APIView):
 class GetUserAPIView(APIView):
     async def get(self, user_id, *args, **kwargs):
         try:
-            user = await User.objects.aget(user_id=user_id)
+            user = await get_user_by_id(user_id=user_id)
         except ObjectDoesNotExist:
             return Response(
                 {"detail": "User not found"},
@@ -79,7 +79,7 @@ class GetUserAPIView(APIView):
 class GetUserByUsernameAPIView(APIView):
     async def get(self, username, *args, **kwargs):
         try:
-            user = await User.objects.aget(username=username)
+            user = await get_user_by_username(username=username)
         except ObjectDoesNotExist:
             return Response(
                 {"detail": "User not found"},
@@ -100,7 +100,7 @@ class UpdateUserAPIView(APIView):
             )
 
         try:
-            user = await User.objects.aget(user_id=user_id)
+            user = await get_user_by_id(user_id=user_id)
         except ObjectDoesNotExist:
             return Response(
                 {"detail": "User not found"},
@@ -139,34 +139,34 @@ class UpdateUserAPIView(APIView):
 class DeleteUserAPIView(APIView):
     async def delete(self, request, user_id, *args, **kwargs):
         try:
-            user = await User.objects.aget(user_id=user_id)
+            user = await get_user_by_id(user_id=user_id)
+            # Делаем запрос к auth_app
+            async with httpx.AsyncClient() as client:
+                response = await client.delete(f"{settings.auth_service_url}/api/v1/auth/{user.user_id}")
+
+            # Пользователь не найден
+            if response.status_code != 200:
+                return Response(
+                    {"detail": "Invalid username"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            # Пользователь найден
+            try:
+                await delete_user(user_id=user.user_id)
+            except Exception as e:
+                return Response(
+                    {"detail": f"Internal server error: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            return Response(
+                {"message": "User deleted successfully", "id": user_id},
+                status=status.HTTP_200_OK,
+            )
+
         except ObjectDoesNotExist:
             return Response(
                 {"detail": "User not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
-
-        # Делаем запрос к auth_app
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(f"{settings.auth_service_url}/api/v1/auth/{user.id}")
-
-        # Пользователь не найден
-        if response.status_code != 200:
-            return Response(
-                {"detail": "Invalid username"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # Пользователь найден
-        try:
-            await user.adelete()
-        except Exception as e:
-            return Response(
-                {"detail": f"Internal server error: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        return Response(
-            {"message": "User deleted successfully", "id": user_id},
-            status=status.HTTP_200_OK,
-        )
