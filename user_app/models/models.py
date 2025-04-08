@@ -7,7 +7,7 @@ class User(models.Model):
     email = models.EmailField(max_length=255, unique=True, db_index=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now=True)
-    updated_at = models.DateTimeField(auto_now_add=True, auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     objects = models.Manager()
 
