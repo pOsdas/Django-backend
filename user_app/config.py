@@ -4,7 +4,7 @@ from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Принудительно загружаем .env и .env-template
-load_dotenv()
+load_dotenv(encoding="utf-8")
 
 
 class RunModel(BaseModel):
