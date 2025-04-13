@@ -1,7 +1,8 @@
 # Backend на django-rest-framework
 Переписанный FastAPI backend: https://github.com/pOsdas/FastAPI-backend на django
-> на столько, на сколько это возможно, например тут используется не асинхронный postgresql, так как django не поддерживает асинхронность в этом плане
+> На столько, на сколько это возможно
 
+Асинхронный запуск с использованием uvicorn:
 ```shell
-python manage.py runserver 0.0.0.0:8000
+uvicorn my_django_project.asgi:application --host 0.0.0.0 --port 8000 --reload
 ```
