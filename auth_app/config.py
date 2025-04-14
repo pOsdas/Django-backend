@@ -25,7 +25,7 @@ class ApiV1Prefix(BaseModel):
 
 
 class ApiPrefix(BaseModel):
-    prefix: str = "/api"
+    prefix: str = "api"
     v1: ApiV1Prefix = ApiV1Prefix()
 
 
@@ -56,7 +56,7 @@ class DataBaseConfig(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env-template", ".env"),
+        env_file=("auth_app/.env-template", "auth_app/.env"),
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="AUTH_SERVICE__"
