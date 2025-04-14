@@ -1,4 +1,4 @@
-from pprint import pprint
+# from pprint import pprint
 from dotenv import load_dotenv
 from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,7 +18,7 @@ class ApiV1Prefix(BaseModel):
 
 
 class ApiPrefix(BaseModel):
-    prefix: str = "/api"
+    prefix: str = "api"
     v1: ApiV1Prefix = ApiV1Prefix()
 
 
@@ -42,12 +42,18 @@ class DataBaseConfig(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env-template", ".env"),
+        env_file=("user_app/.env-template", "user_app/.env"),
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="USER_SERVICE__"
     )
+    debug: bool = False
+    google_client_id: str
+    google_client_secret: str
+    oauth_redirect_uri: str
+    secret_key: str
     auth_service_url: str
+
     run: RunModel = RunModel()
     api: ApiPrefix = ApiPrefix()
     db: DataBaseConfig
