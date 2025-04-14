@@ -4,5 +4,5 @@
 
 Асинхронный запуск с использованием uvicorn:
 ```shell
-uvicorn my_django_project.asgi:application --host 0.0.0.0 --port 8000 --reload
+uvicorn my_django_project.asgi:application --host 127.0.0.1 --port 8000 --reload
 ```
