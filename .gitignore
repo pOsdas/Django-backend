@@ -161,7 +161,11 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 idea/
 /.idea/dataSources.local.xml
-/user_app/.env
+
+# project files
 /auth_app/.env
 /auth_app/certs/
 .env
+
+# static files
+/auth_app_project/static/
