@@ -1,11 +1,11 @@
 # Backend на django-rest-framework
-Переписанный FastAPI backend: https://github.com/pOsdas/FastAPI-backend на django и DRF
-> На столько, на сколько это возможно
+## Часть с auth service
+AUTH SERVICE часть backend'a на FastAPI: https://github.com/pOsdas/FastAPI-backend переписанная на django и DRF
+> На столько, на сколько это возможно.
+
+- Вторая часть: https://github.com/pOsdas/Django-backend-2part
 
 Асинхронный запуск с использованием uvicorn:
 ```shell
-uvicorn auth_app.auth_app_project.asgi:application --host 127.0.0.1 --port 8005 --reload
-```
-```shell
-uvicorn user_app.user_app_project.asgi:application --host 127.0.0.1 --port 8006 --reload
+poetry run uvicorn auth_app_project.asgi:application --host 127.0.0.1 --port 8005 --reload
 ```
