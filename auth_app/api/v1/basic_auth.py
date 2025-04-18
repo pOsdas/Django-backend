@@ -1,6 +1,6 @@
 import httpx
 import logging
-import redis.asyncio as redis
+import redis
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,10 +8,10 @@ from rest_framework import status, exceptions
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from asgiref.sync import sync_to_async
 
 from auth_app.models import AuthUser
 from .serializers import RegisterUserSerializer, AuthUserSerializer
+# from auth_app.api.core.mixins import AsyncAPIView
 from auth_app.services.security import verify_password, hash_password
 from auth_app import crud
 
@@ -30,7 +30,7 @@ class BasicAuthCredentialsAPIView(APIView):
     authentication_classes = [BasicAuthentication]
     permission_classes = [AllowAny]
 
-    async def get(self, request):
+    def get(self, request):
         user = request.user
         return Response({
             "message": "Hi!",
@@ -40,9 +40,10 @@ class BasicAuthCredentialsAPIView(APIView):
 
 
 class RegisterUserAPIView(APIView):
+    serializer_class = RegisterUserSerializer
     permission_classes = [AllowAny]
 
-    async def post(self, request):
+    def post(self, request):
         serializer = RegisterUserSerializer(data=request.data)
         if not serializer.is_valid():
             logger.warning(f"Validation error: {serializer.errors}")
@@ -54,8 +55,8 @@ class RegisterUserAPIView(APIView):
 
         # 1 Запрос на создание
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
                     f"{settings.user_service_url}/api/v1/users/create_user",
                     json={
                         "username": user_data["username"],
@@ -78,7 +79,7 @@ class RegisterUserAPIView(APIView):
         # 2 Хешируем пароль и создаем запись в auth_service
         try:
             hashed_pw = hash_password(user_data["password"])
-            new_auth_user = await AuthUser.objects.acreate(
+            new_auth_user = AuthUser.objects.create(
                 user_id=user_id,
                 password=hashed_pw,
                 refresh_token=None,
@@ -101,10 +102,11 @@ class RegisterUserAPIView(APIView):
 
 class GetUsersAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer = AuthUserSerializer
 
-    async def get(self, request):
+    def get(self, request):
         try:
-            users = await AuthUser.objects.all().alist()
+            users = AuthUser.objects.all().list()
             serializer = AuthUserSerializer(users, many=True)
             return Response(serializer.data)
         except Exception as exc:
@@ -116,10 +118,12 @@ class GetUsersAPIView(APIView):
 
 
 # Вспомогательная асинхронная функция для аутентификации по basic auth
-async def get_auth_user_username(request):
+def get_auth_user_username(request):
     auth = BasicAuthentication()
+    if auth is None:
+        raise exceptions.AuthenticationFailed("Invalid username or password")
     try:
-        user, _ = await sync_to_async(auth.authenticate)(request=request)
+        user, _ = auth.authenticate(request=request)
         username = user.username
     except exceptions.AuthenticationFailed:
         raise exceptions.AuthenticationFailed("Invalid username or password")
@@ -130,7 +134,7 @@ async def get_auth_user_username(request):
 
     # Проверка попыток входа через redis
     key = f"failed_attempts:{username}"
-    attempts = await redis_client.get(key)
+    attempts = redis_client.get(key)
     attempts = int(attempts) if attempts else 0
 
     if attempts >= MAX_ATTEMPTS:
@@ -139,14 +143,14 @@ async def get_auth_user_username(request):
         )
 
     # Запрос пользователя из user_service
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.get(
+    with httpx.Client(timeout=10.0) as client:
+        response = client.get(
             f"{settings.user_service_url}/api/v1/users/username/{username}"
         )
 
     if response.status_code != 200:
-        await redis_client.incr(key)
-        await redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.incr(key)
+        redis_client.expire(key, BLOCK_TIME_SECONDS)
         raise unauthed_exc  # Пользователь не найден
 
     user_data = response.json()
@@ -154,15 +158,15 @@ async def get_auth_user_username(request):
     is_active = user_data.get("is_active")
 
     if not user_id or not is_active:
-        await redis_client.incr(key)
-        await redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.incr(key)
+        redis_client.expire(key, BLOCK_TIME_SECONDS)
         raise unauthed_exc
 
     try:
-        auth_user = await AuthUser.objects.aget(user_id=user_id)
+        auth_user = AuthUser.objects.get(user_id=user_id)
     except ObjectDoesNotExist:
-        await redis_client.incr(key)
-        await redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.incr(key)
+        redis_client.expire(key, BLOCK_TIME_SECONDS)
         raise unauthed_exc
 
     hashed_password = auth_user.password
@@ -170,11 +174,11 @@ async def get_auth_user_username(request):
     # secrets
     req_password = request.query_params.get("password") or request.data.get("password", "")
     if not verify_password(req_password, hashed_password):
-        await redis_client.incr(key)
-        await redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.incr(key)
+        redis_client.expire(key, BLOCK_TIME_SECONDS)
         raise unauthed_exc
 
-    await redis_client.delete(key)
+    redis_client.delete(key)
     return username
 
 
@@ -182,8 +186,8 @@ class BasicAuthUsernameAPIView(APIView):
     authentication_classes = [BasicAuthentication]
     permission_classes = [AllowAny]
 
-    async def get(self, request):
-        username = await get_auth_user_username(request)
+    def get(self, request):
+        username = get_auth_user_username(request)
         return Response({
             "username": username
         })
@@ -199,7 +203,7 @@ def get_username_by_static_auth_token(request):
 class CheckTokenAuthAPIView(APIView):
     permission_classes = [AllowAny]
 
-    async def get(self, request):
+    def get(self, request):
         username = get_username_by_static_auth_token(request)
         return Response({
             "message": f"Hi!, {username}!",
@@ -209,8 +213,9 @@ class CheckTokenAuthAPIView(APIView):
 
 class DeleteAuthUserAPIView(APIView):
     def delete(self, request, user_id: int):
-        auth_user = crud.get_auth_user(user_id)
-        if not auth_user:
+        try:
+            crud.get_auth_user(user_id)
+        except ObjectDoesNotExist:
             return Response(
                 {"detail": f"User with {user_id} not found in auth_service"},
                 status=status.HTTP_404_NOT_FOUND

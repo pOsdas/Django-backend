@@ -5,8 +5,6 @@ update
 delete
 """
 from typing import Sequence, Optional
-
-from asgiref.sync import sync_to_async
 from django.core.exceptions import ObjectDoesNotExist
 
 from auth_app.models import AuthUser
@@ -46,25 +44,24 @@ static_auth_token_to_user_id = {
 # ### never do like that
 
 
-async def get_all_users() -> Sequence[AuthUser]:
-    users = [user async for user in AuthUser.objects.order_by("user_id")]
-    return users
+def get_all_users() -> Sequence[AuthUser]:
+    return list(AuthUser.objects.order_by("user_id"))
 
 
-async def get_auth_user(
+def get_auth_user(
         user_id: int,
 ) -> Optional[AuthUser]:
     try:
-        user = await AuthUser.objects.aget(user_id=user_id)
+        user = AuthUser.objects.get(user_id=user_id)
         return user
     except ObjectDoesNotExist:
-        return None
+        raise
 
 
-async def delete_auth_user(
+def delete_auth_user(
         user_id: int,
 ) -> None:
-    user = await get_auth_user(user_id)
+    user = get_auth_user(user_id)
     if user:
-        await user.adelete()
+        user.delete()
 
