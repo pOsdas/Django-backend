@@ -102,15 +102,24 @@ class RegisterUserAPIView(APIView):
 
 class GetUsersAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    # permission_classes = [AllowAny]
     serializer = AuthUserSerializer
+    authentication_classes = []
 
     def get(self, request):
         try:
-            users = AuthUser.objects.all().list()
+            users = crud.get_all_users()
+            if not users:
+                return Response(
+                    {"detail": "Users not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
             serializer = AuthUserSerializer(users, many=True)
             return Response(serializer.data)
+
         except Exception as exc:
-            logger.error(f"Error fetching users: {str(exc)}")
+            logger.error(f"Error while fetching users: {str(exc)}")
             return Response(
                 {"detail": "Internal server error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -120,10 +129,11 @@ class GetUsersAPIView(APIView):
 # Вспомогательная асинхронная функция для аутентификации по basic auth
 def get_auth_user_username(request):
     auth = BasicAuthentication()
-    if auth is None:
+    auth_tuple = auth.authenticate(request=request)
+    if auth_tuple is None:
         raise exceptions.AuthenticationFailed("Invalid username or password")
     try:
-        user, _ = auth.authenticate(request=request)
+        user, _ = auth_tuple
         username = user.username
     except exceptions.AuthenticationFailed:
         raise exceptions.AuthenticationFailed("Invalid username or password")
@@ -214,11 +224,19 @@ class CheckTokenAuthAPIView(APIView):
 class DeleteAuthUserAPIView(APIView):
     def delete(self, request, user_id: int):
         try:
-            crud.get_auth_user(user_id)
+            crud.delete_auth_user(user_id)
         except ObjectDoesNotExist:
             return Response(
                 {"detail": f"User with {user_id} not found in auth_service"},
                 status=status.HTTP_404_NOT_FOUND
             )
-        crud.delete_auth_user(user_id)
         return Response({"message": "Auth user deleted"})
+        # try:
+        #     crud.get_auth_user(user_id)
+        # except ObjectDoesNotExist:
+        #     return Response(
+        #         {"detail": f"User with {user_id} not found in auth_service"},
+        #         status=status.HTTP_404_NOT_FOUND
+        #     )
+        # crud.delete_auth_user(user_id)
+        # return Response({"message": "Auth user deleted"})
