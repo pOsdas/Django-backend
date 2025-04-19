@@ -9,7 +9,7 @@ class AuthUserSerializer(serializers.Serializer):
 
 
 class RegisterUserSerializer(serializers.Serializer):
-    username = serializers.IntegerField()
+    username = serializers.CharField()
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField()
 
