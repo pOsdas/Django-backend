@@ -1,7 +1,6 @@
 import httpx
 import logging
 import redis
-from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, exceptions
@@ -9,11 +8,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from auth_app.models import AuthUser
-from .serializers import RegisterUserSerializer, AuthUserSerializer
-# from auth_app.api.core.mixins import AsyncAPIView
-from auth_app.services.security import verify_password, hash_password
 from auth_app import crud
+from auth_app.models import AuthUser
+# from auth_app.api.core.mixins import AsyncAPIView
+from auth_app.config import pydantic_settings as settings
+from .serializers import RegisterUserSerializer, AuthUserSerializer
+from auth_app.services.security import verify_password, hash_password
 
 # Настраиваем logger
 logger = logging.getLogger(__name__)
@@ -57,14 +57,14 @@ class RegisterUserAPIView(APIView):
         try:
             with httpx.Client(timeout=10.0) as client:
                 response = client.post(
-                    f"{settings.user_service_url}/api/v1/users/create_user",
+                    f"{settings.user_service_url}/api/v1/users/create_user/",
                     json={
                         "username": user_data["username"],
                         "email": user_data["email"],
                     }
                 )
                 response.raise_for_status()
-                user_id = response.json().get("id")
+                user_id = response.json().get("user_id")
 
                 if not user_id:
                     raise ValueError("Missing user ID in response")
@@ -101,8 +101,8 @@ class RegisterUserAPIView(APIView):
 
 
 class GetUsersAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    # permission_classes = [AllowAny]
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer = AuthUserSerializer
     authentication_classes = []
 
@@ -155,7 +155,7 @@ def get_auth_user_username(request):
     # Запрос пользователя из user_service
     with httpx.Client(timeout=10.0) as client:
         response = client.get(
-            f"{settings.user_service_url}/api/v1/users/username/{username}"
+            f"{settings.user_service_url}/api/v1/users/username/{username}/"
         )
 
     if response.status_code != 200:
