@@ -1,4 +1,5 @@
 import jwt
+import redis
 import bcrypt
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -6,7 +7,8 @@ from passlib.context import CryptContext
 # from django.conf import settings
 from auth_app.config import pydantic_settings as settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 
 def encode_jwt(
@@ -54,5 +56,6 @@ def verify_password(
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password)
 
 
-def generate_static_token() -> str:
-    return secrets.token_hex(16)
+def generate_static_auth_token() -> str:
+    token = secrets.token_hex(16)
+    return token
