@@ -1,0 +1,1 @@
+- [ ] Move redis_client to new file 
