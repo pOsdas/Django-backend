@@ -1,5 +1,6 @@
 import jwt
 import bcrypt
+import secrets
 from datetime import datetime, timezone, timedelta
 from passlib.context import CryptContext
 # from django.conf import settings
@@ -51,3 +52,7 @@ def verify_password(
     if isinstance(hashed_password, memoryview):
         hashed_password = hashed_password.tobytes()
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password)
+
+
+def generate_static_token() -> str:
+    return secrets.token_hex(16)
