@@ -1,6 +1,8 @@
 import httpx
 import logging
 import redis
+import base64
+import binascii
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, exceptions
@@ -128,15 +130,17 @@ class GetUsersAPIView(APIView):
 
 # Вспомогательная асинхронная функция для аутентификации по basic auth
 def get_auth_user_username(request):
-    auth = BasicAuthentication()
-    auth_tuple = auth.authenticate(request=request)
-    if auth_tuple is None:
-        raise exceptions.AuthenticationFailed("Invalid username or password")
+    # Парсим basic заголовок
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.lower().startswith("basic "):
+        raise exceptions.AuthenticationFailed("Missing basic auth header")
+
+    token = auth_header.split(" ", 1)[1].strip()
     try:
-        user, _ = auth_tuple
-        username = user.username
-    except exceptions.AuthenticationFailed:
-        raise exceptions.AuthenticationFailed("Invalid username or password")
+        decoded = base64.b64decode(token).decode("utf-8")
+        username, password = decoded.split(":", 1)
+    except (binascii.Error, ValueError):
+        raise exceptions.AuthenticationFailed("Invalid basic auth header")
 
     unauthed_exc = exceptions.AuthenticationFailed(
         "Invalid username or password",
@@ -153,10 +157,16 @@ def get_auth_user_username(request):
         )
 
     # Запрос пользователя из user_service
-    with httpx.Client(timeout=10.0) as client:
-        response = client.get(
-            f"{settings.user_service_url}/api/v1/users/username/{username}/"
-        )
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f"{settings.user_service_url}/api/v1/users/username/{username}/"
+            )
+    except httpx.HTTPError:
+        # Сбрасываем счётчик на ошибки сети
+        redis_client.incr(key)
+        redis_client.expire(key, BLOCK_TIME_SECONDS)
+        raise unauthed_exc
 
     if response.status_code != 200:
         redis_client.incr(key)
@@ -164,7 +174,7 @@ def get_auth_user_username(request):
         raise unauthed_exc  # Пользователь не найден
 
     user_data = response.json()
-    user_id = user_data.get("id")
+    user_id = user_data.get("user_id")
     is_active = user_data.get("is_active")
 
     if not user_id or not is_active:
@@ -179,11 +189,8 @@ def get_auth_user_username(request):
         redis_client.expire(key, BLOCK_TIME_SECONDS)
         raise unauthed_exc
 
-    hashed_password = auth_user.password
-
     # secrets
-    req_password = request.query_params.get("password") or request.data.get("password", "")
-    if not verify_password(req_password, hashed_password):
+    if not verify_password(password, auth_user.password):
         redis_client.incr(key)
         redis_client.expire(key, BLOCK_TIME_SECONDS)
         raise unauthed_exc
@@ -193,14 +200,15 @@ def get_auth_user_username(request):
 
 
 class BasicAuthUsernameAPIView(APIView):
-    authentication_classes = [BasicAuthentication]
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request):
         username = get_auth_user_username(request)
-        return Response({
-            "username": username
-        })
+        return Response(
+            {"username": username},
+            status=status.HTTP_200_OK
+        )
 
 
 def get_username_by_static_auth_token(request):
@@ -231,12 +239,3 @@ class DeleteAuthUserAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         return Response({"message": "Auth user deleted"})
-        # try:
-        #     crud.get_auth_user(user_id)
-        # except ObjectDoesNotExist:
-        #     return Response(
-        #         {"detail": f"User with {user_id} not found in auth_service"},
-        #         status=status.HTTP_404_NOT_FOUND
-        #     )
-        # crud.delete_auth_user(user_id)
-        # return Response({"message": "Auth user deleted"})
