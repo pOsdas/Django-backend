@@ -49,17 +49,17 @@ def store_static_token(
     redis_client.set(f"static_auth_token:{token}", user_id, ex=ttl)
 
 
-def get_user_id_by_static_token(token: str) -> int | None:
+def get_user_id_by_static_auth_token(token: str) -> int | None:
     user_id: str = redis_client.get(f"static_auth_token:{token}")
     return int(user_id) if user_id else None
 
 
-def get_username_by_static_token(request):
+def get_username_by_static_auth_token(request):
     token = request.headers.get("x-auth-token")
     if not token:
         raise exceptions.AuthenticationFailed("Missing token")
 
-    user_id = get_user_id_by_static_token(token)
+    user_id = get_user_id_by_static_auth_token(token)
     if not user_id:
         raise exceptions.AuthenticationFailed("Invalid token")
 
