@@ -15,7 +15,10 @@ from auth_app.models import AuthUser
 # from auth_app.api.core.mixins import AsyncAPIView
 from auth_app.config import pydantic_settings as settings
 from .serializers import RegisterUserSerializer, AuthUserSerializer
-from auth_app.services.security import verify_password, hash_password
+from auth_app.services.security import (
+    verify_password, hash_password,
+    generate_static_auth_token
+)
 
 # Настраиваем logger
 logger = logging.getLogger(__name__)
@@ -29,6 +32,9 @@ BLOCK_TIME_SECONDS = 300  # 5 минут
 
 
 class BasicAuthCredentialsAPIView(APIView):
+    """
+    Не для продакшена.
+    """
     authentication_classes = [BasicAuthentication]
     permission_classes = [AllowAny]
 
@@ -44,6 +50,7 @@ class BasicAuthCredentialsAPIView(APIView):
 class RegisterUserAPIView(APIView):
     serializer_class = RegisterUserSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = RegisterUserSerializer(data=request.data)
@@ -93,10 +100,14 @@ class RegisterUserAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+        token = generate_static_auth_token()
+        crud.store_static_token(token, user_id)
+
         return Response(
             {
                 "message": "User registered successfully",
-                "user_id": user_id
+                "user_id": user_id,
+                "token": token,
             },
             status=status.HTTP_201_CREATED
         )
@@ -148,7 +159,7 @@ def get_auth_user_username(request):
 
     # Проверка попыток входа через redis
     key = f"failed_attempts:{username}"
-    attempts = redis_client.get(key)
+    attempts: int = redis_client.get(key)
     attempts = int(attempts) if attempts else 0
 
     if attempts >= MAX_ATTEMPTS:
@@ -205,24 +216,16 @@ class BasicAuthUsernameAPIView(APIView):
 
     def get(self, request):
         username = get_auth_user_username(request)
-        return Response(
-            {"username": username},
-            status=status.HTTP_200_OK
-        )
-
-
-def get_username_by_static_auth_token(request):
-    static_token = request.headers.get("x-auth-token")
-    if static_token and (username := crud.static_auth_token_to_user_id.get(static_token)):
-        return username
-    raise exceptions.AuthenticationFailed("Invalid token")
+        return Response({
+            "username": username,
+        })
 
 
 class CheckTokenAuthAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        username = get_username_by_static_auth_token(request)
+        username = crud.get_username_by_static_auth_token(request)
         return Response({
             "message": f"Hi!, {username}!",
             "username": username,
