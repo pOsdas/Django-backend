@@ -37,13 +37,17 @@ def decode_jwt(
 
 def hash_password(password: str) -> bytes:
     salt = bcrypt.gensalt()
-    pwd_bytes = password.encode("utf-8")
-    return bcrypt.hashpw(pwd_bytes, salt)
+    return bcrypt.hashpw(password.encode("utf-8"), salt)
 
 
 def validate_password(password: str, hashed_password: bytes) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), hashed_password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(
+        plain_password: str,
+        hashed_password: bytes | memoryview
+) -> bool:
+    if isinstance(hashed_password, memoryview):
+        hashed_password = hashed_password.tobytes()
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password)
