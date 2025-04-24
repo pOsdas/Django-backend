@@ -2,20 +2,26 @@ import jwt
 import redis
 import bcrypt
 import secrets
+from django.conf import settings
 from datetime import datetime, timezone, timedelta
-from passlib.context import CryptContext
-# from django.conf import settings
-from auth_app.config import pydantic_settings as settings
+
+from auth_app.config import pydantic_settings
 
 
-redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+# Подключение к Redis
+redis_client = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    db=settings.REDIS_DB,
+    decode_responses=settings.REDIS_DECODE_RESPONSES,
+)
 
 
 def encode_jwt(
     payload: dict,
-    private_key: str = settings.auth_jwt.private_key_path.read_text(),
-    algorithm: str = settings.auth_jwt.algorithm,
-    expires_in: int = settings.auth_jwt.access_token_expires_in,  # minutes
+    private_key: str = pydantic_settings.auth_jwt.private_key_path.read_text(),
+    algorithm: str = pydantic_settings.auth_jwt.algorithm,
+    expires_in: int = pydantic_settings.auth_jwt.access_token_expires_in,  # minutes
     expire_timedelta: timedelta | None = None,
 ):
     to_encode = payload.copy()
@@ -31,8 +37,8 @@ def encode_jwt(
 
 def decode_jwt(
     token: str | bytes,
-    public_key: str = settings.auth_jwt.public_key_path.read_text(),
-    algorithm: str = settings.auth_jwt.algorithm,
+    public_key: str = pydantic_settings.auth_jwt.public_key_path.read_text(),
+    algorithm: str = pydantic_settings.auth_jwt.algorithm,
 ):
     decoded = jwt.decode(token, public_key, algorithms=[algorithm])
     return decoded

@@ -1,10 +1,17 @@
 import redis
 import httpx
+from django.conf import settings
 from rest_framework import exceptions
 
-from auth_app.config import pydantic_settings as settings
+from auth_app.config import pydantic_settings
 
-redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+# Подключение к Redis
+redis_client = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    db=settings.REDIS_DB,
+    decode_responses=settings.REDIS_DECODE_RESPONSES,
+)
 
 
 # ---- tokens ----
@@ -33,7 +40,7 @@ def get_username_by_static_auth_token(request):
     # Запрос к user_service
     with httpx.Client(timeout=5.0) as client:
         response = client.get(
-            f"{settings.user_service_url}/api/v1/users/{user_id}/"
+            f"{pydantic_settings.user_service_url}/api/v1/users/{user_id}/"
         )
 
     if response.status_code != 200:
