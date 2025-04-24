@@ -6,6 +6,7 @@ import binascii
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, exceptions
+from drf_spectacular.utils import extend_schema
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -31,6 +32,9 @@ MAX_ATTEMPTS = 5
 BLOCK_TIME_SECONDS = 300  # 5 минут
 
 
+@extend_schema(
+    tags=["Basic Authentication"]
+)
 class BasicAuthCredentialsAPIView(APIView):
     """
     Не для продакшена.
