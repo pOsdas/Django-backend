@@ -25,7 +25,7 @@ DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql"
 # Настройка Redis
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
-REDIS_DB_INDEX = 1
+REDIS_DB = 1
 REDIS_DECODE_RESPONSES = True
 
 # Бизнес-параметры аутентификации
@@ -36,7 +36,7 @@ AUTH_BLOCK_TIME_SECONDS = 300  # 5 минут
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB_INDEX}",
+        'LOCATION': f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             # 'PASSWORD': REDIS_PASSWORD, если нужен пароль
