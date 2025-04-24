@@ -32,9 +32,7 @@ MAX_ATTEMPTS = 5
 BLOCK_TIME_SECONDS = 300  # 5 минут
 
 
-@extend_schema(
-    tags=["Basic Authentication"]
-)
+@extend_schema(tags=["Basic Authentication"])
 class BasicAuthCredentialsAPIView(APIView):
     """
     Не для продакшена.
@@ -51,6 +49,7 @@ class BasicAuthCredentialsAPIView(APIView):
         })
 
 
+@extend_schema(tags=["Basic Authentication"])
 class RegisterUserAPIView(APIView):
     serializer_class = RegisterUserSerializer
     permission_classes = [AllowAny]
@@ -117,6 +116,7 @@ class RegisterUserAPIView(APIView):
         )
 
 
+@extend_schema(tags=["Basic Authentication"])
 class GetUsersAPIView(APIView):
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]
@@ -214,6 +214,7 @@ def get_auth_user_username(request):
     return username
 
 
+@extend_schema(tags=["Basic Authentication"])
 class BasicAuthUsernameAPIView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -225,6 +226,7 @@ class BasicAuthUsernameAPIView(APIView):
         })
 
 
+@extend_schema(tags=["Basic Authentication"])
 class CheckTokenAuthAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -236,6 +238,7 @@ class CheckTokenAuthAPIView(APIView):
         })
 
 
+@extend_schema(tags=["Basic Authentication"])
 class DeleteAuthUserAPIView(APIView):
     def delete(self, request, user_id: int):
         try:
