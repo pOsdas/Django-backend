@@ -10,7 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from auth_app import crud
+from auth_app.crud import user_crud, tokens_crud
 from auth_app.models import AuthUser
 # from auth_app.api.core.mixins import AsyncAPIView
 from auth_app.config import pydantic_settings as settings
@@ -101,7 +101,7 @@ class RegisterUserAPIView(APIView):
             )
 
         token = generate_static_auth_token()
-        crud.store_static_token(token, user_id)
+        tokens_crud.store_static_token(token, user_id)
 
         return Response(
             {
@@ -121,7 +121,7 @@ class GetUsersAPIView(APIView):
 
     def get(self, request):
         try:
-            users = crud.get_all_users()
+            users = user_crud.get_all_users()
             if not users:
                 return Response(
                     {"detail": "Users not found"},
@@ -225,7 +225,7 @@ class CheckTokenAuthAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        username = crud.get_username_by_static_auth_token(request)
+        username = tokens_crud.get_username_by_static_auth_token(request)
         return Response({
             "message": f"Hi!, {username}!",
             "username": username,
@@ -235,7 +235,7 @@ class CheckTokenAuthAPIView(APIView):
 class DeleteAuthUserAPIView(APIView):
     def delete(self, request, user_id: int):
         try:
-            crud.delete_auth_user(user_id)
+            user_crud.delete_auth_user(user_id)
         except ObjectDoesNotExist:
             return Response(
                 {"detail": f"User with {user_id} not found in auth_service"},
