@@ -10,7 +10,7 @@ from auth_app.config import pydantic_settings
 from auth_app.crud.session_crud import create_session, get_session
 
 
-@extend_schema(tags=["Cookie Authentication"])
+@extend_schema(tags=["Cookies"])
 class CookieSessionAPIView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
