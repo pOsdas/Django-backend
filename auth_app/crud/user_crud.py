@@ -5,11 +5,10 @@ update
 delete
 """
 import redis
-from typing import Sequence, Optional, Any, Awaitable
+from typing import Sequence, Optional
 from django.core.exceptions import ObjectDoesNotExist
 
 from auth_app.models import AuthUser
-from auth_app.config import pydantic_settings as settings
 
 
 redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
