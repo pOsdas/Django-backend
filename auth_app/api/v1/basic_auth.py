@@ -3,6 +3,8 @@ import logging
 import redis
 import base64
 import binascii
+from django.http import JsonResponse
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, exceptions
@@ -11,10 +13,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from auth_app.crud import user_crud, tokens_crud
+from auth_app.crud import user_crud, tokens_crud, session_crud
 from auth_app.models import AuthUser
 # from auth_app.api.core.mixins import AsyncAPIView
-from auth_app.config import pydantic_settings as settings
+from auth_app.config import pydantic_settings
 from .serializers import RegisterUserSerializer, AuthUserSerializer
 from auth_app.services.security import (
     verify_password, hash_password,
@@ -25,11 +27,15 @@ from auth_app.services.security import (
 logger = logging.getLogger(__name__)
 
 # Подключение к Redis
-redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    db=settings.REDIS_DB,
+    decode_responses=settings.REDIS_DECODE_RESPONSES,
+)
 
-# failed attempts
-MAX_ATTEMPTS = 5
-BLOCK_TIME_SECONDS = 300  # 5 минут
+MAX_ATTEMPTS = settings.AUTH_MAX_ATTEMPTS
+BLOCK_TIME = settings.AUTH_BLOCK_TIME_SECONDS
 
 
 @extend_schema(tags=["Basic Authentication"])
@@ -49,7 +55,7 @@ class BasicAuthCredentialsAPIView(APIView):
         })
 
 
-@extend_schema(tags=["Basic Authentication"])
+@extend_schema(tags=["Register"])
 class RegisterUserAPIView(APIView):
     serializer_class = RegisterUserSerializer
     permission_classes = [AllowAny]
@@ -69,7 +75,7 @@ class RegisterUserAPIView(APIView):
         try:
             with httpx.Client(timeout=10.0) as client:
                 response = client.post(
-                    f"{settings.user_service_url}/api/v1/users/create_user/",
+                    f"{pydantic_settings.user_service_url}/api/v1/users/create_user/",
                     json={
                         "username": user_data["username"],
                         "email": user_data["email"],
@@ -116,7 +122,7 @@ class RegisterUserAPIView(APIView):
         )
 
 
-@extend_schema(tags=["Basic Authentication"])
+@extend_schema(tags=["CRUD"])
 class GetUsersAPIView(APIView):
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]
@@ -175,17 +181,17 @@ def get_auth_user_username(request):
     try:
         with httpx.Client(timeout=10.0) as client:
             response = client.get(
-                f"{settings.user_service_url}/api/v1/users/username/{username}/"
+                f"{pydantic_settings.user_service_url}/api/v1/users/username/{username}/"
             )
     except httpx.HTTPError:
         # Сбрасываем счётчик на ошибки сети
         redis_client.incr(key)
-        redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.expire(key, BLOCK_TIME)
         raise unauthed_exc
 
     if response.status_code != 200:
         redis_client.incr(key)
-        redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.expire(key, BLOCK_TIME)
         raise unauthed_exc  # Пользователь не найден
 
     user_data = response.json()
@@ -194,24 +200,24 @@ def get_auth_user_username(request):
 
     if not user_id or not is_active:
         redis_client.incr(key)
-        redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.expire(key, BLOCK_TIME)
         raise unauthed_exc
 
     try:
         auth_user = AuthUser.objects.get(user_id=user_id)
     except ObjectDoesNotExist:
         redis_client.incr(key)
-        redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.expire(key, BLOCK_TIME)
         raise unauthed_exc
 
     # secrets
     if not verify_password(password, auth_user.password):
         redis_client.incr(key)
-        redis_client.expire(key, BLOCK_TIME_SECONDS)
+        redis_client.expire(key, BLOCK_TIME)
         raise unauthed_exc
 
     redis_client.delete(key)
-    return username
+    return username, user_id
 
 
 @extend_schema(tags=["Basic Authentication"])
@@ -220,10 +226,23 @@ class BasicAuthUsernameAPIView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        username = get_auth_user_username(request)
-        return Response({
+        username, user_id = get_auth_user_username(request)
+
+        session_token = session_crud.create_session(user_id)
+
+        response = JsonResponse({
+            "user_id": user_id,
             "username": username,
+            "session_id": session_token,
         })
+        response.set_cookie(
+            key="cookie_session_id",
+            value=session_token,
+            httponly=True,  # # javascript protection
+            samesite="Lax",  # CSRF protection
+            max_age=settings.COOKIE_SESSION_TTL,
+        )
+        return response
 
 
 @extend_schema(tags=["Basic Authentication"])
@@ -238,7 +257,7 @@ class CheckTokenAuthAPIView(APIView):
         })
 
 
-@extend_schema(tags=["Basic Authentication"])
+@extend_schema(tags=["CRUD"])
 class DeleteAuthUserAPIView(APIView):
     def delete(self, request, user_id: int):
         try:
