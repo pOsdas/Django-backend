@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     oauth_redirect_uri: str
     secret_key: str
     user_service_url: str
+    cookie_session_id_key: str
 
     run: RunModel = RunModel()
     api: ApiPrefix = ApiPrefix()
