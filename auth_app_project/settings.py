@@ -22,14 +22,30 @@ DATABASES = {
 # DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql_async"
 DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql"
 
-# DATABASES = {
-#     'default': dj_database_url.parse(
-#         os.getenv("AUTH_SERVICE__DB__URL", "postgresql://postgres:pass@localhost:5432/auth_django")
-#     ),
-#     'users': dj_database_url.parse(
-#         os.getenv("USER_SERVICE__DB__URL", "postgresql://postgres:pass@localhost:5432/user_django")
-#     ),
-# }
+# Настройка Redis
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB_INDEX = 1
+REDIS_DECODE_RESPONSES = True
+
+# Бизнес-параметры аутентификации
+AUTH_MAX_ATTEMPTS = 5
+AUTH_BLOCK_TIME_SECONDS = 300  # 5 минут
+
+# Кеш redis'a
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB_INDEX}",
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            # 'PASSWORD': REDIS_PASSWORD, если нужен пароль
+        }
+    }
+}
+
+# TTL для сессий
+COOKIE_SESSION_TTL = 60 * 60 * 24 * 7  # 7 дней
 
 # Установленные приложения
 INSTALLED_APPS = [
