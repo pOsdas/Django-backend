@@ -1,1 +1,1 @@
-- [ ] Move redis_client to new file 
+- [x] Move redis_client to new file 
