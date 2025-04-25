@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema
 
 from auth_app.crud.tokens_crud import get_username_by_static_auth_token
 from auth_app.config import pydantic_settings
-from auth_app.crud.session_crud import create_session, get_session
+from auth_app.crud.session_crud import create_session, get_session, delete_session
 
 
 @extend_schema(tags=["Cookies"])
@@ -30,15 +30,21 @@ class CookieSessionAPIView(APIView):
         return Response(data)
 
 
-# @router.get("/logout-cookie/")
-# def demo_auth_cookie_logout(
-#         response: Response,
-#         session_id: str = Cookie(alias=COOKIE_SESSION_ID_KEY),
-#         user_session_data: dict = Depends(get_session_data)
-# ):
-#     COOKIES.pop(session_id)
-#     response.delete_cookie(COOKIE_SESSION_ID_KEY)
-#     username = user_session_data["username"]
-#     return {
-#         "message": f"Bye, {username}",
-#     }
+@extend_schema(tags=["Cookies"])
+class LogoutCookieAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        """
+        Удалить куку
+        """
+        session_id = request.COOKIES.get(f'{pydantic_settings.cookie_session_id_key}')
+        response = Response({"message": "Logged out successfully"})
+
+        if session_id:
+            delete_session(session_id)
+            response.delete_cookie(f'{pydantic_settings.cookie_session_id_key}')
+
+        return response
+

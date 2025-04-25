@@ -15,3 +15,8 @@ def create_session(user_id: int) -> str:
 
 def get_session(token: str) -> dict | None:
     return cache.get(SESSION_PREFIX + token)
+
+
+def delete_session(token: str) -> None:
+    cache_key = SESSION_PREFIX + token
+    cache.delete(cache_key)
