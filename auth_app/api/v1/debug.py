@@ -1,19 +1,10 @@
-import redis
-from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.sessions.backends.cache import SessionStore
 from rest_framework.decorators import api_view, permission_classes
 
-
-# Подключение к Redis
-redis_client = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    decode_responses=settings.REDIS_DECODE_RESPONSES,
-)
+from auth_app.redis_client import redis_client
 
 
 @csrf_exempt
