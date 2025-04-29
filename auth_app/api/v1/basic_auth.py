@@ -172,10 +172,7 @@ def get_auth_user_username(request):
 
     # Запрос пользователя из user_service
     try:
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(
-                f"{pydantic_settings.user_service_url}/api/v1/users/username/{username}/"
-            )
+        response = user_crud.get_user_service_user_by_username(username)
     except httpx.HTTPError:
         # Сбрасываем счётчик на ошибки сети
         redis_client.incr(key)
