@@ -17,3 +17,13 @@ class RegisterUserSerializer(serializers.Serializer):
 class CombinedUserSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     email = serializers.EmailField()
+
+
+class TokenSerializer(serializers.Serializer):
+    access_token = serializers.CharField()
+    refresh_token = serializers.CharField(allow_null=True, required=False)
+    token_type = serializers.CharField()
+
+
+class RefreshSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()
