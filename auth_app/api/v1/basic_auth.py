@@ -259,6 +259,10 @@ class CheckTokenAuthAPIView(APIView):
 
 @extend_schema(tags=["CRUD"])
 class DeleteAuthUserAPIView(APIView):
+    """
+    Вызывается через user_service, \n
+    Через эту сторону синхронизация не происходит
+    """
     def delete(self, request, user_id: int):
         try:
             user_crud.delete_auth_user(user_id)
