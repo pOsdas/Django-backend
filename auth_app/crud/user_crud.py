@@ -30,15 +30,22 @@ def get_auth_user(
 
 
 def get_user_service_user_by_id(user_id: int):
-    try:
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(
-                f"{pydantic_settings.user_service_url}/api/v1/users/{user_id}/"
-            )
-    except httpx.HTTPError as e:
-        return f"User service error: {str(e)}"
+    with httpx.Client(timeout=10.0) as client:
+        response = client.get(
+            f"{pydantic_settings.user_service_url}/api/v1/users/{user_id}/"
+        )
+        response.raise_for_status()
 
-    response.raise_for_status()
+    return response.json()
+
+
+def get_user_service_user_by_username(username: str):
+    with httpx.Client(timeout=10.0) as client:
+        response = client.get(
+            f"{pydantic_settings.user_service_url}/api/v1/users/username/{username}/"
+        )
+        response.raise_for_status()
+
     return response.json()
 
 
