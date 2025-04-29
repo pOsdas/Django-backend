@@ -10,6 +10,10 @@ from .basic_auth import (
 from .cookies import (
     CookieSessionAPIView,
 )
+from jwt_auth import (
+    LoginApiView,
+    RefreshApiView,
+)
 from .debug import (
     debug_redis_sessions
 )
@@ -22,5 +26,7 @@ urlpatterns = [
     path('check-token-auth/', CheckTokenAuthAPIView.as_view(), name='check-token-auth'),
     path('<int:user_id>/', DeleteAuthUserAPIView.as_view(), name='delete-auth-user'),
     path('cookie-session/', CookieSessionAPIView.as_view(), name='cookie-session'),
+    path('login/', LoginApiView.as_view(), name="jwt-login"),
+    path('refresh/', RefreshApiView.as_view(), name="jwt-refresh"),
     path('redis-sessions/', debug_redis_sessions),
 ]
