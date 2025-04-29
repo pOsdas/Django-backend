@@ -6,15 +6,7 @@ from django.conf import settings
 from datetime import datetime, timezone, timedelta
 
 from auth_app.config import pydantic_settings
-
-
-# Подключение к Redis
-redis_client = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    decode_responses=settings.REDIS_DECODE_RESPONSES,
-)
+from auth_app.redis_client import redis_client
 
 
 def encode_jwt(
