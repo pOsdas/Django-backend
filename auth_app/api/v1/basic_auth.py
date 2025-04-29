@@ -13,6 +13,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
+from auth_app.redis_client import redis_client
 from auth_app.crud import user_crud, tokens_crud, session_crud
 from auth_app.models import AuthUser
 # from auth_app.api.core.mixins import AsyncAPIView
@@ -25,14 +26,6 @@ from auth_app.services.security import (
 
 # Настраиваем logger
 logger = logging.getLogger(__name__)
-
-# Подключение к Redis
-redis_client = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    decode_responses=settings.REDIS_DECODE_RESPONSES,
-)
 
 MAX_ATTEMPTS = settings.AUTH_MAX_ATTEMPTS
 BLOCK_TIME = settings.AUTH_BLOCK_TIME_SECONDS
