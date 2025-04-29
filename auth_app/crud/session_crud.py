@@ -3,13 +3,7 @@ import redis
 from django.conf import settings
 from django.core.cache import cache
 
-# Подключение к Redis
-redis_client = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    decode_responses=settings.REDIS_DECODE_RESPONSES,
-)
+from auth_app.redis_client import redis_client
 
 SESSION_PREFIX = "session:"
 SESSION_TTL = getattr(settings, "SESSION_TTL", 60 * 60 * 24 * 7)
