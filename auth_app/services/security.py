@@ -1,12 +1,9 @@
 import jwt
-import redis
 import bcrypt
 import secrets
-from django.conf import settings
 from datetime import datetime, timezone, timedelta
 
 from auth_app.config import pydantic_settings
-from auth_app.redis_client import redis_client
 
 
 def encode_jwt(
