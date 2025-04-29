@@ -1,9 +1,10 @@
 import redis
 from django.conf import settings
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.sessions.backends.cache import SessionStore
+from rest_framework.decorators import api_view, permission_classes
 
 
 # Подключение к Redis
@@ -17,6 +18,7 @@ redis_client = redis.Redis(
 
 @csrf_exempt
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def debug_redis_sessions(request):
     """
     Распечатать базу redis
