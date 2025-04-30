@@ -42,7 +42,7 @@ def create_access_token(user_id, email) -> str:
 def create_refresh_token(user_id, email) -> str:
     jwt_payload = {
         "sub": user_id,
-        "user_id": email,
+        "email": email,
     }
     return create_jwt(
         token_type=REFRESH_TOKEN_TYPE,
