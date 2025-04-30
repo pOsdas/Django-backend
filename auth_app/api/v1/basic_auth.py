@@ -125,33 +125,6 @@ class RegisterUserAPIView(APIView):
         )
 
 
-@extend_schema(tags=["CRUD"])
-class GetUsersAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
-    permission_classes = [AllowAny]
-    serializer = AuthUserSerializer
-    authentication_classes = []
-
-    def get(self, request):
-        try:
-            users = user_crud.get_all_users()
-            if not users:
-                return Response(
-                    {"detail": "Users not found"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
-            serializer = AuthUserSerializer(users, many=True)
-            return Response(serializer.data)
-
-        except Exception as exc:
-            logger.error(f"Error while fetching users: {str(exc)}")
-            return Response(
-                {"detail": "Internal server error"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
 # Вспомогательная асинхронная функция для аутентификации по username/password
 def get_auth_user_username(request):
     # Парсим basic заголовок
@@ -183,20 +156,14 @@ def get_auth_user_username(request):
     # Запрос пользователя из user_service
     try:
         response = user_crud.get_user_service_user_by_username(username)
-    except httpx.HTTPError:
+    except httpx.HTTPStatusError:
         # Сбрасываем счётчик на ошибки сети
         redis_client.incr(key)
         redis_client.expire(key, BLOCK_TIME)
         raise unauthed_exc
 
-    if response.status_code != 200:
-        redis_client.incr(key)
-        redis_client.expire(key, BLOCK_TIME)
-        raise unauthed_exc  # Пользователь не найден
-
-    user_data = response.json()
-    user_id = user_data.get("user_id")
-    is_active = user_data.get("is_active")
+    user_id = response.get("user_id")
+    is_active = response.get("is_active")
 
     if not user_id or not is_active:
         redis_client.incr(key)
@@ -269,20 +236,3 @@ class CheckTokenAuthAPIView(APIView):
             "message": f"Hi!, {username}!",
             "username": username,
         })
-
-
-@extend_schema(tags=["CRUD"])
-class DeleteAuthUserAPIView(APIView):
-    """
-    Вызывается через user_service, \n
-    Через эту сторону синхронизация не происходит
-    """
-    def delete(self, request, user_id: int):
-        try:
-            user_crud.delete_auth_user(user_id)
-        except ObjectDoesNotExist:
-            return Response(
-                {"detail": f"User with {user_id} not found in auth_service"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        return Response({"message": "Auth user deleted"})
