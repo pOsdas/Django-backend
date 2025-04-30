@@ -45,7 +45,7 @@ CACHES = {
 }
 
 # TTL для сессий
-COOKIE_SESSION_TTL = 60 * 60 * 24 * 7  # 7 дней
+COOKIE_SESSION_TTL = 60 * 15  # 15 минут
 
 # Установленные приложения
 INSTALLED_APPS = [
