@@ -72,20 +72,12 @@ class RegisterUserAPIView(APIView):
         email = user_data["email"]
 
         # 1 Запрос на создание
+        username = user_data["username"]
         try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(
-                    f"{pydantic_settings.user_service_url}/api/v1/users/create_user/",
-                    json={
-                        "username": user_data["username"],
-                        "email": email,
-                    }
-                )
-                response.raise_for_status()
-                user_id = response.json().get("user_id")
-
-                if not user_id:
-                    raise ValueError("Missing user ID in response")
+            response = user_crud.create_user_service_user( username, email)
+            user_id = response.get("user_id")
+            if not user_id:
+                raise ValueError("Missing user ID in response")
 
         except (httpx.HTTPError, ValueError) as exc:
             logger.error(f"User service error: {str(exc)}")
