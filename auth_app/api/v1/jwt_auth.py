@@ -1,10 +1,5 @@
-# auth_app/api/v1/jwt_views.py
-from http.client import HTTPException
-
 import httpx
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,7 +9,6 @@ from rest_framework.permissions import AllowAny
 from auth_app.services.security import (
     validate_password,
     decode_jwt,
-    encode_jwt,
 )
 from auth_app.api.core.helpers import (
     create_access_token,
@@ -22,7 +16,7 @@ from auth_app.api.core.helpers import (
 )
 from auth_app.crud import user_crud
 from auth_app.models import AuthUser
-from auth_app.api.v1.serializers import TokenSerializer, RefreshSerializer, AuthUserSerializer
+from auth_app.api.v1.serializers import TokenSerializer
 
 
 class LoginApiView(APIView):
@@ -85,10 +79,24 @@ class RefreshApiView(APIView):
 
         user_id = payload.get("user_id")
         email = payload.get("email")
+
+        # Сверяем refresh_token
+        auth_user = AuthUser.objects.filter(user_id=user_id, refresh_token=token).first()
+
         if not user_id:
             raise AuthenticationFailed("Invalid token payload")
 
+        if not auth_user:
+            raise AuthenticationFailed("Refresh token revoked or invalid")
+
+        # Создаем новые токены
         new_access = create_access_token(user_id=user_id, email=email)
+        new_refresh = create_refresh_token(user_id=user_id, email=email)
+
+        # Присваиваем новый refresh_token
+        auth_user.refresh_token = new_refresh
+        auth_user.save(update_fields=["refresh_token"])
+
         data = {"access_token": new_access, "refresh_token": None, "token_type": "Bearer"}
         serializer = TokenSerializer(data=data, context={"partial": True})
         serializer.is_valid(raise_exception=True)
