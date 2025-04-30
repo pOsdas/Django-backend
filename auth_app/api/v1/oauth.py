@@ -1,5 +1,7 @@
+import httpx
 import requests
 from django.urls import reverse
+from rest_framework import status
 from django.shortcuts import redirect
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,7 +9,10 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
 from authlib.integrations.django_client import OAuth
 
+from auth_app.models import AuthUser
+from auth_app.crud import user_crud
 from auth_app.config import pydantic_settings
+from auth_app.api.core.helpers import create_access_token, create_refresh_token
 
 oauth = OAuth()
 
@@ -42,8 +47,7 @@ class GoogleCallbackView(APIView):
 
     def get(self, request):
         """
-        Google редиректит сюда с кодом, мы обмениваем его на токен,
-        а потом запрашиваем данные пользователя
+        Google редиректит сюда
         """
         # получаем токен
         token = oauth.google.authorize_access_token(request)
@@ -54,9 +58,35 @@ class GoogleCallbackView(APIView):
         )
         resp.raise_for_status()
         user_info = resp.json()
-        # здесь вы создаёте/обновляете своего юзера в БД, выдаёте JWT и т.п.
+
+        username = user_info.get('name')
+        email = user_info.get('email')
+
+        # Запрос на создание в user_service
+        try:
+            response = user_crud.create_user_service_user(username, email)
+            user_id = response.get("user_id")
+            if not user_id:
+                raise ValueError("Missing user ID in response")
+
+        except (httpx.HTTPError, ValueError) as exc:
+            print(f"User service error: {str(exc)}")
+            return Response(
+                {"detail": "Failed to create user profile in user_service"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Создаем пользователя тут
+        new_access = create_access_token(user_id=user_id, email=email)
+        new_refresh = create_refresh_token(user_id=user_id, email=email)
+
+        AuthUser.objects.update_or_create(
+            user_id=user_id,
+            defaults={'refresh_token': new_refresh},
+        )
+
         return Response({
-            'token': token,
+            'access_token': new_access,
             'user': user_info,
         })
 
