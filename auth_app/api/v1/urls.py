@@ -20,6 +20,10 @@ from .crud import (
     GetUserAPIView,
     DeleteAuthUserAPIView,
 )
+from .oauth import (
+    GoogleLoginView,
+    GoogleCallbackView,
+)
 
 urlpatterns = [
     path('basic-auth/', BasicAuthCredentialsAPIView.as_view(), name='basic-auth'),
@@ -33,4 +37,6 @@ urlpatterns = [
     path('jwt/login/', LoginApiView.as_view(), name="jwt-login"),
     path('jwt/refresh/', RefreshApiView.as_view(), name="jwt-refresh"),
     path('redis-sessions/', debug_redis_sessions),
+    path('login/google/', GoogleLoginView.as_view(), name="google-login"),
+    path('callback/google/', GoogleCallbackView.as_view(), name="google-callback"),
 ]
