@@ -12,13 +12,15 @@ from drf_spectacular.utils import extend_schema
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from auth_app.redis_client import redis_client
-from auth_app.crud import user_crud, tokens_crud, session_crud
 from auth_app.models import AuthUser
-# from auth_app.api.core.mixins import AsyncAPIView
 from auth_app.config import pydantic_settings
+from auth_app.redis_client import redis_client
+# from auth_app.api.core.mixins import AsyncAPIView
+from auth_app.crud import user_crud, tokens_crud, session_crud
 from .serializers import RegisterUserSerializer, AuthUserSerializer
+from auth_app.api.core.helpers import create_access_token, create_refresh_token
 from auth_app.services.security import (
     verify_password, hash_password,
     generate_static_auth_token
@@ -50,6 +52,11 @@ class BasicAuthCredentialsAPIView(APIView):
 
 @extend_schema(tags=["Register"])
 class RegisterUserAPIView(APIView):
+    """
+    Регистрируем пользователя, \n
+    Выдаем пользователю access и refresh tokens, \n
+    Выдаем ему x-auth-token.
+    """
     serializer_class = RegisterUserSerializer
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -63,6 +70,7 @@ class RegisterUserAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user_data = serializer.validated_data
+        email = user_data["email"]
 
         # 1 Запрос на создание
         try:
@@ -71,7 +79,7 @@ class RegisterUserAPIView(APIView):
                     f"{pydantic_settings.user_service_url}/api/v1/users/create_user/",
                     json={
                         "username": user_data["username"],
-                        "email": user_data["email"],
+                        "email": email,
                     }
                 )
                 response.raise_for_status()
@@ -90,10 +98,11 @@ class RegisterUserAPIView(APIView):
         # 2 Хешируем пароль и создаем запись в auth_service
         try:
             hashed_pw = hash_password(user_data["password"])
-            new_auth_user = AuthUser.objects.create(
+            refresh = create_refresh_token(user_id, email)
+            AuthUser.objects.create(
                 user_id=user_id,
                 password=hashed_pw,
-                refresh_token=None,
+                refresh_token=refresh,
             )
         except Exception as exc:
             logger.error(f"Auth user creation failed: {str(exc)}")
@@ -104,12 +113,14 @@ class RegisterUserAPIView(APIView):
 
         token = generate_static_auth_token()
         tokens_crud.store_static_token(token, user_id)
+        access = create_access_token(user_id, email)
 
         return Response(
             {
                 "message": "User registered successfully",
                 "user_id": user_id,
-                "token": token,
+                "x-auth-token": token,
+                "access": access,
             },
             status=status.HTTP_201_CREATED
         )
