@@ -1,13 +1,14 @@
 import httpx
-from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.permissions import AllowAny
+from drf_spectacular.utils import extend_schema
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 
 from auth_app.services.security import (
-    validate_password,
+    verify_password,
     decode_jwt,
 )
 from auth_app.api.core.helpers import (
@@ -19,7 +20,9 @@ from auth_app.models import AuthUser
 from auth_app.api.v1.serializers import TokenSerializer
 
 
+@extend_schema(tags=["JWT"])
 class LoginApiView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -52,7 +55,7 @@ class LoginApiView(APIView):
         except ObjectDoesNotExist:
             raise AuthenticationFailed("Invalid username or password")
 
-        if not validate_password(password, auth_user.password):
+        if not verify_password(password, auth_user.password):
             raise AuthenticationFailed("Invalid username or password")
 
         access = create_access_token(user_id, email)
@@ -64,7 +67,9 @@ class LoginApiView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=["JWT"])
 class RefreshApiView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -77,7 +82,7 @@ class RefreshApiView(APIView):
         except Exception as e:
             raise AuthenticationFailed(str(e))
 
-        user_id = payload.get("user_id")
+        user_id = payload.get("sub")
         email = payload.get("email")
 
         # Сверяем refresh_token
