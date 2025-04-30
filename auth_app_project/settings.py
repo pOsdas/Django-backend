@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_spectacular',
     'rest_framework',
+    'authlib.integrations.django_client',
     'rest_framework_simplejwt',
     'auth_app',
 ]
