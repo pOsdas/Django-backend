@@ -2,31 +2,35 @@ from django.urls import path
 from .basic_auth import (
     BasicAuthCredentialsAPIView,
     RegisterUserAPIView,
-    GetUsersAPIView,
     BasicAuthUsernameAPIView,
     CheckTokenAuthAPIView,
-    DeleteAuthUserAPIView,
 )
 from .cookies import (
     CookieSessionAPIView,
 )
-from jwt_auth import (
+from .jwt_auth import (
     LoginApiView,
     RefreshApiView,
 )
 from .debug import (
     debug_redis_sessions
 )
+from .crud import (
+    GetUsersAPIView,
+    GetUserAPIView,
+    DeleteAuthUserAPIView,
+)
 
 urlpatterns = [
     path('basic-auth/', BasicAuthCredentialsAPIView.as_view(), name='basic-auth'),
     path('register/', RegisterUserAPIView.as_view(), name='register'),
     path('get_users/', GetUsersAPIView.as_view(), name='get-users'),
+    path('<int:user_id>/', GetUserAPIView.as_view(), name='get-user'),
     path('basic-auth-username/', BasicAuthUsernameAPIView.as_view(), name='basic-auth-username'),
     path('check-token-auth/', CheckTokenAuthAPIView.as_view(), name='check-token-auth'),
     path('<int:user_id>/', DeleteAuthUserAPIView.as_view(), name='delete-auth-user'),
     path('cookie-session/', CookieSessionAPIView.as_view(), name='cookie-session'),
-    path('login/', LoginApiView.as_view(), name="jwt-login"),
-    path('refresh/', RefreshApiView.as_view(), name="jwt-refresh"),
+    path('jwt/login/', LoginApiView.as_view(), name="jwt-login"),
+    path('jwt/refresh/', RefreshApiView.as_view(), name="jwt-refresh"),
     path('redis-sessions/', debug_redis_sessions),
 ]
