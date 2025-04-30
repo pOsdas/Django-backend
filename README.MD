@@ -9,3 +9,9 @@ AUTH SERVICE часть backend'a на FastAPI: https://github.com/pOsdas/FastAP
 ```shell
 poetry run uvicorn auth_app_project.asgi:application --host 127.0.0.1 --port 8005 --reload
 ```
+
+## Подробнее
+x-auth-token это тот-же access_token, но:
+- x-auth-token хранится в redis
+- access_token просто создается 
+> Используйте то что вы сами выберете
