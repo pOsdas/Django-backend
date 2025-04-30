@@ -29,6 +29,8 @@ def get_auth_user(
         raise
 
 
+# --- with request to user_service ---
+
 def get_user_service_user_by_id(user_id: int):
     with httpx.Client(timeout=10.0) as client:
         response = client.get(
@@ -47,6 +49,22 @@ def get_user_service_user_by_username(username: str):
         response.raise_for_status()
 
     return response.json()
+
+
+def create_user_service_user(username, email):
+    with httpx.Client(timeout=10.0) as client:
+        response = client.post(
+            f"{pydantic_settings.user_service_url}/api/v1/users/create_user/",
+            json={
+                "username": username,
+                "email": email,
+            }
+        )
+        response.raise_for_status()
+
+    return response.json()
+
+# ------------------------------------
 
 
 def delete_auth_user_redis_data(user) -> None:
