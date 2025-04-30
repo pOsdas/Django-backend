@@ -1,12 +1,10 @@
 import uuid
-import redis
 from django.conf import settings
-from django.core.cache import cache
 
 from auth_app.redis_client import redis_client
 
 SESSION_PREFIX = "session:"
-SESSION_TTL = getattr(settings, "SESSION_TTL", 60 * 60 * 24 * 7)
+SESSION_TTL = getattr(settings, "COOKIE_SESSION_TTL", 60 * 15)
 
 
 def create_session(user_id: int) -> str:
