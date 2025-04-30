@@ -1,6 +1,5 @@
 import httpx
 import logging
-import redis
 import base64
 import binascii
 from django.http import JsonResponse
@@ -153,7 +152,7 @@ class GetUsersAPIView(APIView):
             )
 
 
-# Вспомогательная асинхронная функция для аутентификации по basic auth
+# Вспомогательная асинхронная функция для аутентификации по username/password
 def get_auth_user_username(request):
     # Парсим basic заголовок
     auth_header = request.headers.get("Authorization", "")
@@ -223,18 +222,32 @@ def get_auth_user_username(request):
 
 @extend_schema(tags=["Basic Authentication"])
 class BasicAuthUsernameAPIView(APIView):
+    """
+    Login через username и password
+    """
     authentication_classes = []
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def post(self, request):
         username, user_id = get_auth_user_username(request)
 
+        # x-auth-token
         session_token = session_crud.create_session(user_id)
+
+        # access and refresh tokens
+        user_data = user_crud.get_user_service_user_by_username(username=username)
+        email = user_data.get("email")
+        access_token = create_access_token(user_id, email)
+        refresh_token = create_refresh_token(user_id, email)
+        auth_user = AuthUser.objects.get(user_id=user_id)
+        auth_user.refresh_token = refresh_token
+        auth_user.save()
 
         response = JsonResponse({
             "user_id": user_id,
             "username": username,
-            "session_id": session_token,
+            "session_id": session_token,  # x-auth-token
+            "access_token": access_token  # по сути тот же x-auth-token
         })
         response.set_cookie(
             key="cookie_session_id",
