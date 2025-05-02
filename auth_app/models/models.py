@@ -6,6 +6,7 @@ class AuthUser(models.Model):
     password = models.BinaryField()
     refresh_token = models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    last_login = models.DateTimeField(auto_now=True)
 
     objects = models.Manager()
 
