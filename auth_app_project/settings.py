@@ -63,6 +63,10 @@ INSTALLED_APPS = [
     'auth_app',
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'auth_app.api.core.log_in.AuthUserBackend',
+]
+
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
