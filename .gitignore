@@ -164,6 +164,7 @@ idea/
 /.idea/dataSources.local.xml
 
 # project files
+/auth_app/api/README.MD
 /auth_app/.env
 /auth_app/certs/
 .env
